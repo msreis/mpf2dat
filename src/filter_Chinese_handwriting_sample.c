@@ -2,15 +2,11 @@
 
 Program to filter a Multiple Pattern Feature (MPF) file, a binary file format
 used in the Chinese handwriting database. This program receives a MPF file
-as input, filters its contents, and writes the results into standard output. 
+as input, filters its contents, and writes the results into standard output.
 
 The MPF description can be found at the following link:
 
 http://www.nlpr.ia.ac.cn/databases/download/feature_data/FileFormat-mpf.pdf
-
-To compile this code, type in the command line:
-
-gcc -ansi -pedantic -Wall -o bin/filter_Chinese_handwriting_sample src/filter_Chinese_handwriting_sample.c 
 
     Copyright (C) 2017 Marcelo S. Reis
 
@@ -37,6 +33,13 @@ gcc -ansi -pedantic -Wall -o bin/filter_Chinese_handwriting_sample src/filter_Ch
 # define DIMENSIONALITY 512
 
 
+/*
+
+  This function receives a file name file_name for a MPF file. It returns 0 if
+  it could successfully read, discretize and create an output featsel DAT file
+  or returns 1 otherwise.
+
+*/
 int filter_MPF_file (char * file_name);
 
 
