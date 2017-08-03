@@ -32,15 +32,34 @@
 use strict;
 
 
-# Hash to store the pairs <label, pixel set> observed in the samples.
+# The total number of features.
 #
-my %observations;
+my $DIMENSIONALITY = 512;
 
+# A matrix to store the pairs <label, pixel set> observed in the samples.
+#
+my @observation;
+
+# A matrix to store the order statistics of each feature.
+#
+my @order_statistics;
+
+# A hash to build a histogram as a function of the observations.
+#
+my %histogram;
+
+# A hash to have a global register of all labels (Chinese characters).
+#
+my %label;
+
+# Input, output and exec files.
+#
 my $INPUT_DIR = "input/";
 my $OUTPUT_DIR = "output/";
-
 my $FILTER_BINARY = "bin/filter_Chinese_handwriting_sample";
 
+# Processing the arguments.
+#
 (@ARGV == 1) or die "Syntax: $0 database\n";
 
 my $DATABASE = $ARGV[0];
@@ -74,6 +93,8 @@ else
 
 my $tmp_file    = $OUTPUT_DIR . "/tmp.txt";
 
+my $number_of_samples = 0;
+
 foreach my $i ($first_file..$last_file)
 {
   my $file_index = sprintf "%03d", $i;
@@ -104,22 +125,94 @@ foreach my $i ($first_file..$last_file)
   {
     chomp $_;
     my @line = split /\s+/, $_;
-    $observations{$line[0]}++;
-  }
-  
-  close (INPUT);
 
+    # If the current label was not stored, we do it now.
+    #    
+    if (! defined ($label{$line[0]})) 
+    { 
+      $label{$line[0]} = 1;
+    }
+
+    foreach my $index (0..$DIMENSIONALITY) # we also store the label at index 0.
+    {
+      $observation[$number_of_samples]->[$index] = $line[$index];
+      push @{$order_statistics[$index]}, $line[$index];
+    } 
+    $number_of_samples++;
+  }
+  close (INPUT);
 }
 
-my $output_file = $OUTPUT_DIR . $DATABASE . ".dat";
 
+
+# Now we compute the order statistics for each feature.
+#
+foreach my $index (1..$DIMENSIONALITY)
+{
+  @{$order_statistics[$index]} = sort @{$order_statistics[$index]};
+}
+
+# With the computed order statistics, one quartile is $number_of_samples / 4,
+# two quartiles is $number_of_samples / 2, and so forth.
+#
+my $quartile_1 = int ((1 * $number_of_samples) / 4);
+my $quartile_2 = int ((2 * $number_of_samples) / 4);
+my $quartile_3 = int ((3 * $number_of_samples) / 4);
+
+# Now we compute the final histogram of frequencies.
+#
+foreach my $k (0..($number_of_samples - 1))
+{
+  my $realization = "";
+
+  foreach my $index (1..$DIMENSIONALITY)
+  {
+    if ($observation[$k]->[$index] <= $order_statistics[$index]->[$quartile_1])
+    {
+      $realization .= " 0";
+    }
+    elsif($observation[$k]->[$index] <=$order_statistics[$index]->[$quartile_2])
+    {
+      $realization .= " 1";
+    }
+    elsif($observation[$k]->[$index] <=$order_statistics[$index]->[$quartile_3])
+    {
+      $realization .= " 2";
+    }
+    else
+    {
+      $realization .= " 3";
+    }
+  }
+
+  $histogram{$realization}->{$observation[$k]->[0]}++;
+}
+
+
+# Write the histogram into the output DAT file.
+#
+my $output_file = $OUTPUT_DIR . $DATABASE . ".dat";
 open (OUTPUT, ">$output_file") or die "ERROR: Could not open output file!\n";
 
-# TODO: write the actual DAT file.
-#
-foreach my $code (sort keys (%observations))
+my $label_index = 0;
+
+foreach my $realization (sort keys (%histogram))
 {
-  printf OUTPUT "$code\n"; 
+  print OUTPUT $realization . "   ";
+
+  foreach my $label (sort keys (%label))
+  {
+    if (defined ($histogram{$realization}->{$label}))
+    {
+      print OUTPUT $histogram{$realization}->{$label} . " ";
+    }
+    else
+    {
+      print OUTPUT "0 ";
+    }
+  }
+
+  print OUTPUT "\n";
 }
 
 close (OUTPUT);
