@@ -30,17 +30,34 @@ http://www.nlpr.ia.ac.cn/databases/download/feature_data/FileFormat-mpf.pdf
 # include <stdio.h>
 # include <string.h>
 
+
+/* Define the number of features. All the following data sets have the same
+   number of features (512):
+
+   * HWDB1.0
+   * HWDB1.1
+   * OLHWDB1.0
+   * OLHWDB1.1
+
+*/
 # define DIMENSIONALITY 512
 
 
-/*
 
-  This function receives a file name file_name for a MPF file. It returns 0 if
-  it could successfully read, discretize and create an output featsel DAT file
-  or returns 1 otherwise.
+/*******************************************************************************
+
+  This function receives a file name file_name for a MPF file.
+
+  It returns:
+
+    * 0 if it could successfully read, discretize and create a
+      featsel DAT output file;
+
+    * 1 otherwise.
 
 */
 int filter_MPF_file (char * file_name);
+
 
 
 /*******************************************************************************
@@ -50,6 +67,7 @@ int filter_MPF_file (char * file_name);
 */
 int main (int argc, char * argv [])
 {
+
   if (argc != 2)
   {
     printf ("Syntax: %s same_file.mpf\n", argv[0]);
@@ -68,17 +86,19 @@ int filter_MPF_file (char * file_name)
   FILE          * sample_file_pointer;
   int             i, j = 1;
   unsigned char   aux;
-  long int        size_of_header;     /* 62 B + strlen (illustr) */
-  unsigned char   format_code [8];    /* "MPF\0" */
-  unsigned char * illustr = NULL;     /* "Character features ... \0" */
-  unsigned char   code_type [20];     /* "ASCII\0", "GB\0", etc. */
-  short int       code_length;        /* 1, 2, 4, etc. */
-  char            data_type [20];     /* "unsigned char", "short", etc. */
-  /* long int        sample_number; */
+
+  long int        size_of_header;          /* 62 B + strlen (illustr)        */
+  unsigned char   format_code [8];         /* "MPF\0"                        */
+  unsigned char * illustr = NULL;          /* "Character features ... \0"    */
+  unsigned char   code_type [20];          /* "ASCII\0", "GB\0", etc.        */
+  short int       code_length;             /* 1, 2, 4, etc.                  */
+  char            data_type [20];          /* "unsigned char", "short", etc. */
+
   long int        dimensionality = DIMENSIONALITY;
   short int       vector [DIMENSIONALITY * sizeof (unsigned char)];
 
-  /* try to open file */
+  /* Try to open file.
+   */
   sample_file_pointer = fopen (file_name, "r");
   if (sample_file_pointer == NULL)
   {
@@ -86,7 +106,8 @@ int filter_MPF_file (char * file_name)
     return 1;
   }
 
-  /* 4 bytes are reserved for the header size */
+  /*  4 bytes are reserved for the header size.
+   */
   fscanf (sample_file_pointer, "%c", &aux);
   size_of_header = (long int) aux;
   printf ("%li\n", size_of_header);
@@ -101,23 +122,27 @@ int filter_MPF_file (char * file_name)
     }
   }
 
-  /* 8 bytes are reserved for the format code */
+  /*  8 bytes are reserved for the format code.
+   */
   for (i = 0; i < 8; i++)
     fscanf (sample_file_pointer, "%c", &format_code[i]);
   printf ("%s\n", format_code);
 
-  /* (size_of_header - 62) bytes are reserved for the illustration */
+  /*  (size_of_header - 62) bytes are reserved for the illustration.
+   */
   illustr = (unsigned char *) malloc ((size_of_header - 62) * sizeof (char));
   for (i = 0; i < (size_of_header - 62); i++)
     fscanf (sample_file_pointer, "%c", &illustr[i]);
   printf ("%s\n", illustr);
 
-  /* 20 bytes are reserved for code type */
+  /*  20 bytes are reserved for code type.
+   */
   for (i = 0; i < 20; i++)
     fscanf (sample_file_pointer, "%c", &code_type[i]);
   printf ("%s\n", code_type);
 
-  /* 2 bytes are reserved for code length */
+  /*  2 bytes are reserved for code length.
+   */
   fscanf (sample_file_pointer, "%c", &aux);
   code_length = (short int) aux;
   printf ("%hi\n", code_length);
@@ -129,32 +154,38 @@ int filter_MPF_file (char * file_name)
     return 1;
   }
 
-  /* 20 bytes are reserved for data type */
+  /*  20 bytes are reserved for data type.
+   */
   for (i = 0; i < 20; i++)
     fscanf (sample_file_pointer, "%c", &data_type[i]);
   printf ("%s\n", data_type);
 
-  /* 4 bytes are reserved for sample number */
-  for (i = 0; i < 4; i++)
-    fscanf (sample_file_pointer, "%c", &aux);
-  
-  /* 4 bytes are reserved for dimensionality */
+  /*  4 bytes are reserved for sample number.
+   */
   for (i = 0; i < 4; i++)
     fscanf (sample_file_pointer, "%c", &aux);
 
-  /* now the remaining data are sample records (concatenated) */
+  /*  4 bytes are reserved for dimensionality.
+   */
+  for (i = 0; i < 4; i++)
+    fscanf (sample_file_pointer, "%c", &aux);
+
+  /*  Now the remaining data are sample records (concatenated).
+   */
   if (strcmp (data_type, "unsigned char") == 0)
   {
-    while ((fscanf (sample_file_pointer, "%c", &aux)) && 
+    while ((fscanf (sample_file_pointer, "%c", &aux)) &&
            (! feof (sample_file_pointer)))
     {
-      /* Print the class label; for instance, the GB code of the
-         current Chinese character. Link for a GB code table:
+      /*  Print the class label; for instance, the GB code of the
+          current Chinese character. Link for a GB code table:
 
-         http://www.ansell-uebersetzungen.com/gborder.html
-      */ 
+          http://www.ansell-uebersetzungen.com/gborder.html
+       */
       printf ("%2x", aux);
-      /* read remaining of the class label (code_length bytes) */
+
+      /* Read remaining of the class label (code_length bytes).
+       */
       for (i = 1; i < (int) code_length; i++)
       {
         fscanf (sample_file_pointer, "%c", &aux);
@@ -162,7 +193,8 @@ int filter_MPF_file (char * file_name)
       }
       j++;
 
-      /* Read vector (dimensionality * sizeof (data_type) bytes) */
+      /*  Read vector (dimensionality * sizeof (data_type) bytes).
+       */
       for (i = 0; i < (int) dimensionality * sizeof (unsigned char); i++)
       {
         fscanf (sample_file_pointer, "%c", &aux);
@@ -179,8 +211,9 @@ int filter_MPF_file (char * file_name)
     free (illustr);
     return 1;
   }
- 
-  /* free illustr array and close file */
+
+  /*  Free illustr array and close file.
+   */
   if (illustr != NULL)
     free (illustr);
   fclose (sample_file_pointer);
@@ -188,5 +221,7 @@ int filter_MPF_file (char * file_name)
   return 0;
 }
 
-
+/*
+    End of program.
+ */
 
