@@ -60,7 +60,7 @@ my $FILTER_BINARY = "bin/filter_Chinese_handwriting_sample";
 
 # Processing the arguments.
 #
-(@ARGV == 1) or die "Syntax: $0 database\n";
+@ARGV == 1 or die "Syntax: $0 database\n";
 
 my $DATABASE = $ARGV[0];
 
@@ -103,9 +103,9 @@ foreach my $i ($first_file..$last_file)
 
   # Run the C program coded to filter each of the mpf files.
   #
-  system ("./$FILTER_BINARY $input_file > $tmp_file");
+  system "./$FILTER_BINARY $input_file > $tmp_file";
 
-  open (INPUT, $tmp_file) or die "ERROR: Could not open tmp file!\n";
+  open INPUT, $tmp_file or die "ERROR: Could not open tmp file!\n";
 
   $_ = <INPUT>;  # Size of file header.
   $_ = <INPUT>;  # Format code.
@@ -116,10 +116,11 @@ foreach my $i ($first_file..$last_file)
 
   # Now we have one pair <label, pixel set> per line, in the following format:
   #
-  # b6f3  11  11   0   3   8   1   0   0  16   4   0  14  14   1   0   0  34  22   3  37  11  22  10   8  26  17   9  43  15  34  25  12  11   4  15  33  16  27   7  15  39  11  25  26  27  22   1  18  35   6 31  16  41  16   0   3  18   2  11   4  27   8   0   0  25  17   1   4  26  26  20   5  22   4   1  18  19  10  12   2   1   1   1  19   7  20  11   4  25   8   3   9   3   7  16   8  44   4   6  13   4   8  11  22  14   2   8   9   6   6   4  36  22   2  11   6   3   4  19  29   2   0   1   0   0   3   8   2  19  17  10   1  14  37  38  15  13   5   2   0   3   8  30  16   0   2   3   0   0   7  15   5   4   5   8   0   0   1   3   1   9   1   0   0   0   5  10   3   3   0   0   0   0   0   1   1   6   0   0   0   0   8  27  10   0   0   0   0   0  11  16   2   0  20  39   4   0   0   1   8   0   1   6   1   1   0   2  15   0   4   3   0   0   2   2   8   0   9   8   0   0   8   6   1   0   2   0   1   0   5   4   4   1   2   0   0   0   1   0   1   5   2   0   0   1   9   1   0   1   2   0   0   1   7  1   0   0   3   9   3   1   0   1   7   0   7  13   5  23   4   0   5   0  32  14   7  43   9   8  36   0  20  10  18  34  24  26  36   2  37   8  29  22   8  13  32   3  49   9  40  12  29   8  25   4  51  13  38   6  35   6  17   2  36   9  10   1   5   1   2   0   1   3   1   1   7  21  21   2  13  31   3  12  16  11   4   1   8   8   2  14   6  14   5   0  14  19   5  10   3   6  14   7  19   9   9  7   3  17  19  10   7   2  14   5  10  12  10   1   2   3  21   2   8   2  26   1  13   5  14   1   6  15  29   0   0   1   0   2  16  25   7  16   6  11   1   7  27  18   3  15   2   1   0   0   4  25   5   0   0   0   0   0   1   2   0   7   1   0   0   0   4  11   1  16   1   0   0   0   7  21   1   1   0   1   1   0   0   1   3   4   8   6   8   4  25  34  22   0   1   0   0   1   1   0   0  11   4   0   0   1 
+  # b6f3  7  11   0   3   8   1   0   0  ... 
   #
   # That is, a code ("b6f3") which corresponds to the observed Chinese ideogram
-  # and 512 grayscale pixels (features) that were observed.
+  # and 512 grayscale pixels (features) that were observed, each one ranging
+  # from 0 to 255.
   #
   while (<INPUT>)
   {
@@ -142,8 +143,6 @@ foreach my $i ($first_file..$last_file)
   }
   close (INPUT);
 }
-
-
 
 # Now we compute the order statistics for each feature.
 #
@@ -184,40 +183,32 @@ foreach my $k (0..($number_of_samples - 1))
       $realization .= " 3";
     }
   }
-
   $histogram{$realization}->{$observation[$k]->[0]}++;
 }
-
 
 # Write the histogram into the output DAT file.
 #
 my $output_file = $OUTPUT_DIR . $DATABASE . ".dat";
-open (OUTPUT, ">$output_file") or die "ERROR: Could not open output file!\n";
+open OUTPUT, ">$output_file" or die "ERROR: Could not open output file!\n";
 
 my $label_index = 0;
 
-foreach my $realization (sort keys (%histogram))
+foreach my $realization (sort keys %histogram)
 {
   print OUTPUT $realization . "   ";
 
-  foreach my $label (sort keys (%label))
+  foreach my $label (sort keys %label)
   {
-    if (defined ($histogram{$realization}->{$label}))
-    {
-      print OUTPUT $histogram{$realization}->{$label} . " ";
-    }
-    else
-    {
-      print OUTPUT "0 ";
-    }
+    defined $histogram{$realization}->{$label}
+      and print OUTPUT $histogram{$realization}->{$label} . " "
+       or print OUTPUT "0 ";
   }
 
   print OUTPUT "\n";
 }
+close OUTPUT;
 
-close (OUTPUT);
-
-system ("rm $tmp_file");
+system "rm $tmp_file";
 
 # End of program.
 #
