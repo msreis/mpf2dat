@@ -1,5 +1,5 @@
 # mpf2dat
-A program to convert a Multiple Pattern Feature (MPF) file into featsel DAT format.
+A program to read a [Multiple Pattern Feature (MPF)](http://www.nlpr.ia.ac.cn/databases/download/feature_data/FileFormat-mpf.pdf) file, discretize it, and save the results into a featsel DAT format file.
 
 MPF file format is used to store feature selection data in the [CASIA Online and Offline Chinese Handwriting Databases](http://www.nlpr.ia.ac.cn/databases/handwriting/Home.html).
 
